@@ -1,6 +1,7 @@
 package com.example.errorBook.util;
 
-import com.health.common.lang.Result;
+
+import com.example.errorBook.common.lang.Res;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -18,12 +19,12 @@ import javax.annotation.Resource;
 public class RedisAOP {
     
     @Resource
-    private RedisTemplate<String,Result> redisTemplate;
+    private RedisTemplate<String, Res> redisTemplate;
     
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     
-    @Pointcut("@annotation(com.health.util.RedisAnnotations.MethodAspect01) && @annotation(org.springframework.web.bind.annotation.GetMapping)")
+    @Pointcut("@annotation(com.example.errorBook.util.RedisAnnotations.MethodAspect01) && @annotation(org.springframework.web.bind.annotation.GetMapping)")
     private void pointcut01() {
     }
     
@@ -36,7 +37,7 @@ public class RedisAOP {
      */
     @Around("pointcut01()")
     private Object aroundPointcut01(ProceedingJoinPoint point) {
-        Result result = null;
+        Res result = null;
         
         try {
             Object[] args = point.getArgs();
@@ -47,11 +48,11 @@ public class RedisAOP {
             String value = stringRedisTemplate.opsForValue().get(key);
             //2. 存在则返回
             if (value != null) {
-                return Result.succ(value);
+                return Res.succ(value);
             }
             //3. 不存在则查询数据库(业务层方法),并存入redis
             else {
-                result = (Result) point.proceed(args);
+                result = (Res) point.proceed(args);
                 //4. 判断请求是否成功
                 if(result.getCode()==200){
                 redisTemplate.opsForValue().set(key,result);
