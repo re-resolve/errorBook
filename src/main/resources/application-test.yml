@@ -1,0 +1,36 @@
+server:
+  port: 8085
+spring:
+  servlet:
+    multipart:
+      max-file-size : 10MB
+      max-request-size : 10MB
+
+# DataSource Config
+#spring:
+#  datasource:
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://localhost:3306/psyhealth_v1.0?useUnicode=true&useSSL=false&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#    username: root
+#    password: 123456789
+#    hikari:
+#      # 连接池中允许的最小连接数。default：10
+#      minimum-idle: 10
+#      # 连接池中允许的最大连接数。default：10
+#      maximum-pool-size: 30
+#      # 自动提交 默认是 true，自动提交从池中返回的连接
+#      auto-commit: true
+#      # 一个连接idle状态的最大时长（毫秒），超时则被释放（retired），default:10minutes
+#      idle-timeout: 60000
+#      # 连接池名字
+#      #pool-name: "Hikari01"
+#      # 一个连接的生命时长（毫秒），超时而且没被使用则被释放（retired），default:30minutes，建议设置比数据库超时时长少30秒
+#      max-lifetime: 1800000
+#      # 等待连接池分配连接的最大时长（毫秒），超过这个时长还没可用的连接则发生SQLException， default:30秒
+#      connection-timeout: 20000
+
+config:
+  jwt:
+    secret: f4e2e52034348f86b67cde581c0f9eb5
+    expire: 7200000 #2小时
+    header: token
