@@ -96,6 +96,7 @@ public class UserController {
     
     /**
      * 用户注册(学生或老师)
+     * 需要判断账户是否存在，存在则注册失败
      *
      * @param user
      * @return
@@ -139,6 +140,7 @@ public class UserController {
     
     /**
      * 新增管理员
+     * 需要判断账户是否存在，存在则新增失败
      *
      * @param user
      * @return

@@ -7,7 +7,10 @@ import com.example.errorBook.common.dto.IdListDto;
 import com.example.errorBook.common.dto.QuestionDto;
 import com.example.errorBook.common.lang.Res;
 import com.example.errorBook.entity.Question;
+import com.example.errorBook.service.ChapterService;
 import com.example.errorBook.service.QuestionService;
+import com.example.errorBook.service.SectionService;
+import com.example.errorBook.service.SubjectService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.shiro.authz.annotation.Logical;
@@ -33,6 +36,15 @@ public class QuestionController {
     @Autowired
     private QuestionService questionService;
     
+    @Autowired
+    private SubjectService subjectService;
+    
+    @Autowired
+    private ChapterService chapterService;
+    
+    @Autowired
+    private SectionService sectionService;
+    
     /**
      * 上传word文档
      *
@@ -47,7 +59,7 @@ public class QuestionController {
      */
     @RequiresAuthentication
     @PostMapping("/uploadQuestion")
-    public Res uploadQuestion(@RequestParam Long id,@RequestParam("docxFile") File docxFile) throws
+    public Res uploadQuestion(@RequestParam Long id, @RequestParam("docxFile") File docxFile) throws
             XPathExpressionException, IOException, ParserConfigurationException, InvalidFormatException, TransformerException, SAXException {
         
         //String filePath = "/test1.docx";
@@ -57,8 +69,10 @@ public class QuestionController {
         List<Question> results = parseEquations
                 (docxFile, ommlXslPath, mmlXslPath, "/XSLT/mml2tex/"
                         , "<latex>", "</latex>"
-                        , "<picture>", "</picture>");
+                        , "<picture>", "</picture>"
+                        , subjectService, chapterService, sectionService);
         if (results != null) {
+            questionService.saveBatch(results);
             for (Question result : results) {
                 log.info(result.toString());
             }
@@ -70,12 +84,13 @@ public class QuestionController {
     /**
      * 根据多个id查对应题目信息
      * 不传则查询全部
+     *
      * @param questionIds
      * @return
      */
     @RequiresAuthentication
     @PostMapping("/listQuestion")
-    public Res listQuestion(@RequestBody IdListDto questionIds){
+    public Res listQuestion(@RequestBody IdListDto questionIds) {
         return null;
     }
     
@@ -83,6 +98,7 @@ public class QuestionController {
      * 分页+模糊查询题目
      * 传值为0则查询全部
      * 按更改时间降序
+     *
      * @param page
      * @param pageSize
      * @param questionDto
@@ -106,12 +122,12 @@ public class QuestionController {
         //查询排序为最近更改的
         queryWrapper.orderByDesc(Question::getUpdateTime);
         
-        questionService.page(questionPage,queryWrapper);
+        questionService.page(questionPage, queryWrapper);
         
         return Res.succ(questionPage);
     }
     
-/*    *//**
+    /*    *//**
      * 新增一道题目
      * @param question
      * @return
@@ -125,17 +141,18 @@ public class QuestionController {
     
     /**
      * 删除多道题目
+     *
      * @param ids
      * @return
      */
     @RequiresAuthentication
-    @RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
+    @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @DeleteMapping("/deleteByIds")
-    public Res deleteByIds(@RequestBody IdListDto ids){
+    public Res deleteByIds(@RequestBody IdListDto ids) {
         return null;
     }
     
-/*    *//**
+    /*    *//**
      * 修改一道题目的和名称
      * 需判断学科、章、节是否存在
      * @param question
