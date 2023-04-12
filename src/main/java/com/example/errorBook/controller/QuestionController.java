@@ -124,14 +124,14 @@ public class QuestionController {
     }*/
     
     /**
-     * 删除一道题目
-     * @param id
+     * 删除多道题目
+     * @param ids
      * @return
      */
     @RequiresAuthentication
     @RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
-    @DeleteMapping("/deleteById")
-    public Res deleteById(Long id){
+    @DeleteMapping("/deleteByIds")
+    public Res deleteByIds(@RequestBody IdListDto ids){
         return null;
     }
     
