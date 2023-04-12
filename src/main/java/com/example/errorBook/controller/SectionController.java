@@ -16,6 +16,7 @@ public class SectionController {
     
     /**
      * 新增一个节
+     * 需判断节的名称是否已存在
      * @param section
      * @return
      */

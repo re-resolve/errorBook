@@ -16,6 +16,7 @@ public class ChapterController {
     
     /**
      * 新增一个章
+     * 需判断章的名称是否已存在
      * @param chapter
      * @return
      */

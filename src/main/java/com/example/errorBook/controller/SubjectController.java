@@ -15,6 +15,7 @@ public class SubjectController {
     
     /**
      * 新增一个学科
+     * 需判断学科的名称是否已存在
      * @param subject
      * @return
      */
