@@ -147,7 +147,18 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
-
+		<!--允许用户在 XSLT 2.0 或 3.0 中运行 XSLT 1.0 样式表 -->
+		<dependency>
+			<groupId>net.sf.saxon</groupId>
+			<artifactId>Saxon-HE</artifactId>
+			<version>10.6</version>
+		</dependency>
+		<!--华为云obs -->
+		<dependency>
+			<groupId>com.huaweicloud</groupId>
+			<artifactId>esdk-obs-java-bundle</artifactId>
+			<version>[3.22.12,)</version>
+		</dependency>
 	</dependencies>
 
 	<build>
