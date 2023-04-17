@@ -20,5 +20,6 @@ public class Subject implements Serializable {
     //学科的名称
     @NotBlank(message = "学科名称不能为空")
     private String subjectName;
-    
+
+
 }

@@ -25,6 +25,8 @@ import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static com.example.errorBook.utils.XSLUtils.parseEquations;
@@ -57,7 +59,7 @@ public class QuestionController {
      * @throws TransformerException
      * @throws SAXException
      */
-    @RequiresAuthentication
+    /*@RequiresAuthentication
     @PostMapping("/uploadQuestion")
     public Res uploadQuestion(@RequestParam Long id, @RequestParam("docxFile") File docxFile) throws
             XPathExpressionException, IOException, ParserConfigurationException, InvalidFormatException, TransformerException, SAXException {
@@ -79,7 +81,7 @@ public class QuestionController {
             return Res.succ(results);
         }
         return Res.fail("导入的word文档格式错误");
-    }
+    }*/
     
     /**
      * 根据多个id查对应题目信息
@@ -91,9 +93,10 @@ public class QuestionController {
     @RequiresAuthentication
     @PostMapping("/listQuestion")
     public Res listQuestion(@RequestBody IdListDto questionIds) {
-        return null;
+        Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
+        return Res.succ(questions);
     }
-    
+
     /**
      * 分页+模糊查询题目
      * 传值为0则查询全部
@@ -149,7 +152,9 @@ public class QuestionController {
     @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @DeleteMapping("/deleteByIds")
     public Res deleteByIds(@RequestBody IdListDto ids) {
-        return null;
+        boolean sucToDel = questionService.removeByIds(Arrays.asList(ids.getIds()));
+        if(sucToDel) return Res.succ("删除成功");
+        else return Res.fail("删除失败");
     }
     
     /*    *//**
