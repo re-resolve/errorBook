@@ -59,13 +59,11 @@ public class QuestionController {
      * @throws TransformerException
      * @throws SAXException
      */
-    /*@RequiresAuthentication
+    @RequiresAuthentication
     @PostMapping("/uploadQuestion")
     public Res uploadQuestion(@RequestParam Long id, @RequestParam("docxFile") File docxFile) throws
-            XPathExpressionException, IOException, ParserConfigurationException, InvalidFormatException, TransformerException, SAXException {
-        
-        //String filePath = "/test1.docx";
-        //File docxFile = new File(filePath);
+            Exception {
+
         String ommlXslPath = "/XSLT/OMML2MML.XSL";
         String mmlXslPath = "/XSLT/mml2tex/mmltex.xsl";
         List<Question> results = parseEquations
@@ -76,11 +74,31 @@ public class QuestionController {
         if (results != null) {
             questionService.saveBatch(results);
             for (Question result : results) {
+                result.setPublisher(id);
                 log.info(result.toString());
             }
-            return Res.succ(results);
+            return Res.succ("导入word成功");
         }
         return Res.fail("导入的word文档格式错误");
+    }
+/*    public static void main(String[] args) throws Exception {
+        String filePath = XSLUtils.class.getResource("/test1.docx").getFile();
+    
+        File docxFile = new File(filePath);
+        String ommlXslPath = "/XSLT/OMML2MML.XSL";
+        String mmlXslPath = "/XSLT/mml2tex/mmltex.xsl";
+        List<Question> results = parseEquations
+                (docxFile, ommlXslPath, mmlXslPath, "/XSLT/mml2tex/"
+                        , "<latex>", "</latex>"
+                        , "<picture>", "</picture>"
+                        , subjectService, chapterService, sectionService);
+        if (results != null) {
+            //questionService.saveBatch(results);
+            for (Question result : results) {
+                result.setPublisher(2L);
+                log.info(result.toString());
+            }
+        }
     }*/
     
     /**

@@ -66,6 +66,13 @@ public class GlobalExceptionHandler {
         log.error("运行时异常：----------------{}", e);
         return Res.fail(e.getMessage());
     }
-
+    
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(CustomException.class)
+    public Res exceptionHandler(CustomException ex){
+        log.error(ex.getMessage());
+        
+        return Res.fail(500,ex.getMessage(),null);
+    }
     
 }
