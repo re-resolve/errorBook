@@ -51,6 +51,9 @@ public class CollectionController {
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @GetMapping("/listCollection")
     public Res listCollection(@RequestBody IdListDto collectionIds){
+        if(collectionIds.getIds().length == 0){
+            return Res.succ(collectionService.list());
+        }
         java.util.Collection<Collection> collections = collectionService.listByIds(Arrays.asList(collectionIds.getIds()));
         return Res.succ(collections);
     }

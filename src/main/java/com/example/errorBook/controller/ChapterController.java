@@ -62,6 +62,9 @@ public class ChapterController {
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @GetMapping("/listChapter")
     public Res listChapter(@RequestBody IdListDto subjectIds){
+        if(subjectIds.getIds().length == 0){
+            return Res.succ(chapterService.list());
+        }
         Collection<Chapter> chapters = chapterService.listByIds(Arrays.asList(subjectIds.getIds()));
         return Res.succ(chapters);
     }

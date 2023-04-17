@@ -65,6 +65,9 @@ public class SectionController {
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @GetMapping("/listSection")
     public Res listSection(@RequestBody IdListDto chapterIds){
+        if(chapterIds.getIds().length == 0){
+            return  Res.succ(sectionService.list());
+        }
         Collection<Section> sections = sectionService.listByIds(Arrays.asList(chapterIds.getIds()));
 
         return Res.succ(sections);

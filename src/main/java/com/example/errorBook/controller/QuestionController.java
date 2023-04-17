@@ -93,6 +93,9 @@ public class QuestionController {
     @RequiresAuthentication
     @PostMapping("/listQuestion")
     public Res listQuestion(@RequestBody IdListDto questionIds) {
+        if(questionIds.getIds().length == 0){
+            return Res.succ(questionService.list());
+        }
         Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
         return Res.succ(questions);
     }

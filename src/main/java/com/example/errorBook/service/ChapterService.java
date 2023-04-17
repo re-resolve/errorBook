@@ -6,5 +6,5 @@ import com.example.errorBook.entity.Chapter;
 import java.util.List;
 
 public interface ChapterService extends IService<Chapter> {
-     List<Chapter> selectChapterByConditons(Chapter chapter, Long subjectId);
+
 }
