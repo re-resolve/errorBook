@@ -5,9 +5,6 @@ import com.example.errorBook.common.dto.IdListDto;
 import com.example.errorBook.common.lang.Res;
 import com.example.errorBook.entity.Chapter;
 import com.example.errorBook.entity.Section;
-import com.example.errorBook.entity.Subject;
-import com.example.errorBook.entity.User;
-import com.example.errorBook.mapper.SectionMapper;
 import com.example.errorBook.service.ChapterService;
 import com.example.errorBook.service.SectionService;
 import lombok.extern.slf4j.Slf4j;
@@ -20,10 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 @Slf4j
-@RestController("/section")
+@RestController
+@RequestMapping("/section")
 public class SectionController {
     @Autowired
     SectionService sectionService;
@@ -41,9 +38,15 @@ public class SectionController {
     @RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @PostMapping("/insert")
     public Res insert(@Validated @RequestBody Section section){
-
+    
+        Chapter chapter = chapterService.getById(section.getChapterId());
+        if(chapter==null){
+            return  Res.fail("该节的章不存在");
+        }
         String sectionName = section.getSectionName();
-        Section newSection = sectionService.getOne(new LambdaQueryWrapper<Section>().eq(Section::getChapterId,section.getChapterId()).eq(Section::getSectionName, sectionName));
+        Section newSection = sectionService.getOne(new LambdaQueryWrapper<Section>()
+                .eq(Section::getChapterId,section.getChapterId())
+                .eq(Section::getSectionName, sectionName));
 
 
         if(newSection != null){

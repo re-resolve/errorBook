@@ -4,18 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.errorBook.common.dto.IdListDto;
+import com.example.errorBook.common.dto.QuestionCollectionDto;
 import com.example.errorBook.common.dto.QuestionDto;
 import com.example.errorBook.common.lang.Res;
 import com.example.errorBook.entity.Question;
-import com.example.errorBook.service.ChapterService;
-import com.example.errorBook.service.QuestionService;
-import com.example.errorBook.service.SectionService;
-import com.example.errorBook.service.SubjectService;
+import com.example.errorBook.entity.User;
+import com.example.errorBook.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresRoles;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.xml.sax.SAXException;
@@ -25,6 +25,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -32,7 +33,8 @@ import java.util.List;
 import static com.example.errorBook.utils.XSLUtils.parseEquations;
 
 @Slf4j
-@RestController("/question")
+@RestController
+@RequestMapping("/question")
 public class QuestionController {
     
     @Autowired
@@ -46,6 +48,12 @@ public class QuestionController {
     
     @Autowired
     private SectionService sectionService;
+    
+    @Autowired
+    private CollectionService collectionService;
+    
+    @Autowired
+    private UserService userService;
     
     /**
      * 上传word文档
@@ -63,7 +71,7 @@ public class QuestionController {
     @PostMapping("/uploadQuestion")
     public Res uploadQuestion(@RequestParam Long id, @RequestParam("docxFile") File docxFile) throws
             Exception {
-
+        
         String ommlXslPath = "/XSLT/OMML2MML.XSL";
         String mmlXslPath = "/XSLT/mml2tex/mmltex.xsl";
         List<Question> results = parseEquations
@@ -111,13 +119,54 @@ public class QuestionController {
     @RequiresAuthentication
     @PostMapping("/listQuestion")
     public Res listQuestion(@RequestBody IdListDto questionIds) {
-        if(questionIds.getIds().length == 0){
+        if (questionIds.getIds().length == 0) {
             return Res.succ(questionService.list());
         }
         Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
         return Res.succ(questions);
     }
-
+    
+    /**
+     * 根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
+     * 不传题目id则查询全部
+     *
+     * @param idListDto
+     * @return
+     */
+    @RequiresAuthentication
+    @PostMapping("/searchQuestion")
+    public Res searchQuestion(@RequestBody IdListDto idListDto) {
+        User user = userService.getById(idListDto.getUserId());
+        if (user == null) {
+            return Res.fail("该用户不存在");
+        }
+        
+        Collection<QuestionCollectionDto> dtoList = new ArrayList<>();
+        
+        Collection<Question> questions;
+        
+        if (idListDto.getIds().length == 0) {
+            questions = questionService.list();
+        } else {
+            questions = questionService.listByIds(Arrays.asList(idListDto.getIds()));
+        }
+        
+        for (Question question : questions) {
+            QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
+            
+            BeanUtils.copyProperties(question, questionCollectionDto);
+            
+            com.example.errorBook.entity.Collection collection = collectionService.getOne(new LambdaQueryWrapper<com.example.errorBook.entity.Collection>()
+                    .eq(com.example.errorBook.entity.Collection::getUserId, user.getId())
+                    .eq(com.example.errorBook.entity.Collection::getQuestionId, question.getId()));
+            //查询用户是否收藏改题目
+            questionCollectionDto.setIfCollected(collection != null);
+            dtoList.add(questionCollectionDto);
+        }
+        return Res.succ(dtoList);
+        
+    }
+    
     /**
      * 分页+模糊查询题目
      * 传值为0则查询全部
@@ -174,7 +223,7 @@ public class QuestionController {
     @DeleteMapping("/deleteByIds")
     public Res deleteByIds(@RequestBody IdListDto ids) {
         boolean sucToDel = questionService.removeByIds(Arrays.asList(ids.getIds()));
-        if(sucToDel) return Res.succ("删除成功");
+        if (sucToDel) return Res.succ("删除成功");
         else return Res.fail("删除失败");
     }
     

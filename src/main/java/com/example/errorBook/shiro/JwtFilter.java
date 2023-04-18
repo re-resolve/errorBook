@@ -86,17 +86,19 @@ public class JwtFilter extends AuthenticatingFilter {
             
             log.info(httpServletRequest.getAttribute(ServletRequestPathUtils.PATH_ATTRIBUTE).toString());
             
-            Annotation[] declaredAnnotations = ((HandlerMethod) handler.getHandler()).getMethod().getDeclaredAnnotations();
-            
-            for (Annotation annotation:declaredAnnotations) {
-                /**
-                 *如果含有@GuestAccess注解，则认为是不需要验证是否登录，
-                 *直接放行即可
-                 */
-                if (GuestAccess.class.equals(annotation.annotationType())) {
-                    return true;
+            if (handler != null) {
+                Annotation[] declaredAnnotations = ((HandlerMethod) handler.getHandler()).getMethod().getDeclaredAnnotations();
+                for (Annotation annotation:declaredAnnotations) {
+                    /**
+                     *如果含有@GuestAccess注解，则认为是不需要验证是否登录，
+                     *直接放行即可
+                     */
+                    if (GuestAccess.class.equals(annotation.annotationType())) {
+                        return true;
+                    }
                 }
             }
+            
         } catch (Exception e) {
             e.printStackTrace();
         }

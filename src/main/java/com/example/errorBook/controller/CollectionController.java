@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.errorBook.common.dto.IdListDto;
 import com.example.errorBook.common.lang.Res;
 import com.example.errorBook.entity.Collection;
-import com.example.errorBook.entity.Subject;
-import com.example.errorBook.entity.User;
 import com.example.errorBook.service.CollectionService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
@@ -13,10 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
-import java.util.List;
 
 @Slf4j
-@RestController("/collection")
+@RestController
+@RequestMapping("/collection")
 public class CollectionController {
 
     @Autowired
