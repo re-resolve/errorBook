@@ -16,7 +16,7 @@ import java.util.Arrays;
 @RestController
 @RequestMapping("/collection")
 public class CollectionController {
-
+    
     @Autowired
     CollectionService collectionService;
     
@@ -28,46 +28,48 @@ public class CollectionController {
      */
     @RequiresAuthentication
     @PostMapping("/insert")
-    public Res insert(@RequestBody Collection collection){
+    public Res insert(@RequestBody Collection collection) {
         Collection newCollection = collectionService.getOne(new LambdaQueryWrapper<Collection>().eq(Collection::getQuestionId, collection.getQuestionId()).eq(Collection::getUserId, collection.getUserId()));
-        if(newCollection != null){
+        if (newCollection != null) {
             Res.fail("该题目已存在");
         }
         boolean sucToSave = collectionService.save(collection);
-
-        if(sucToSave)return Res.succ("收藏成功");
+        
+        if (sucToSave) return Res.succ("收藏成功");
         else return Res.fail("收藏失败");
     }
     
     /**
-     * 根据多个用户id查询题目
+     * 根据多个用户id查询各自收藏的题目
      * id为0则查询全部
+     *
      * @param collectionIds
      * @return
      */
     @RequiresAuthentication
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
-    @GetMapping("/listCollection")
-    public Res listCollection(@RequestBody IdListDto collectionIds){
-        if(collectionIds.getIds().length == 0){
+    @PostMapping("/listCollection")
+    public Res listCollection(@RequestBody IdListDto collectionIds) {
+        if (collectionIds.getIds().length == 0) {
             return Res.succ(collectionService.list());
         }
-        java.util.Collection<Collection> collections = collectionService.listByIds(Arrays.asList(collectionIds.getIds()));
+        java.util.Collection<Collection> collections = collectionService.list(new LambdaQueryWrapper<Collection>().in(Collection::getUserId, Arrays.asList(collectionIds.getIds())));
         return Res.succ(collections);
     }
     
     /**
      * 删除一个收藏题目
+     *
      * @param id
      * @return
      */
     @RequiresAuthentication
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @DeleteMapping("/deleteById")
-    public Res deleteById(Long id){
+    public Res deleteById(Long id) {
         boolean sucToDel = collectionService.removeById(id);
-        if(sucToDel)return Res.succ("成功删除题目");
-        else return Res.fail("删除失败");
+        if (sucToDel) return Res.succ("成功取消收藏该题目");
+        else return Res.fail("取消收藏失败");
     }
     
 }

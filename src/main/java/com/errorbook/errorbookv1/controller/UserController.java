@@ -84,8 +84,9 @@ public class UserController {
             return Res.succ(MapUtil.builder()
                     .put("token", jwt)
                     .put("refreshToken", jwt)
-                    .put(k, jwt)
+                    //.put(k, jwt)
                     .put("userId", adminServiceOne.getId())
+                    .put("roleId", roleId)
                     .map()
             );
         }
@@ -202,7 +203,9 @@ public class UserController {
         if (newUser == null) {
             return Res.fail("所要修改的学生不存在");
         }
-        
+        if (StringUtils.isBlank(user.getAccount())) {
+            return Res.fail("所要修改的用户的账户信息为空");
+        }
         String password = user.getPassword();
         if (StringUtils.isNotBlank(password)) {//改密码
             String salt = PasswordUtil.getSalt();
@@ -224,7 +227,7 @@ public class UserController {
         } else {
             user.setPassword(newUser.getPassword());
         }
-        
+        user.setId(2L);
         userService.updateById(user);
         
         return Res.succ("成功修改学生信息");
@@ -240,7 +243,7 @@ public class UserController {
     @RequiresAuthentication
     @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @PutMapping("/updateTeacher")
-    public Res updateTeacher(@Validated @RequestBody User user) {
+    public Res updateTeacher(@RequestBody User user) {
         
         Long userId = user.getId();
         
@@ -248,9 +251,11 @@ public class UserController {
         if (newUser == null) {
             return Res.fail("所要修改的用户不存在");
         }
-        
+        if (StringUtils.isBlank(user.getAccount())) {
+            return Res.fail("所要修改的用户的账户信息为空");
+        }
         String password = user.getPassword();
-
+        
         if (StringUtils.isNotBlank(password)) {//改密码
             String salt = PasswordUtil.getSalt();
             Salt saltEntity = saltService.getOne(new LambdaQueryWrapper<Salt>().eq(Salt::getAccount, newUser.getAccount()));
@@ -258,15 +263,15 @@ public class UserController {
                 return Res.fail("所要修改的老师的密码对应的盐值不存在...");
             }
             //保存此随机盐
-        
+            
             saltEntity.setAccount(user.getAccount());
-        
+            
             saltEntity.setSaltValue(salt);
-        
+            
             saltService.updateById(saltEntity);
             //保存用户信息
             String md5Pwd = PasswordUtil.getMD5Encryption(password, salt);
-        
+            
             user.setPassword(md5Pwd);
         } else {
             user.setPassword(newUser.getPassword());
@@ -280,16 +285,16 @@ public class UserController {
     /**
      * 分页+账户模糊查询用户信息
      *
-     * @param page 页码
+     * @param page     页码
      * @param pageSize 每页大小
-     * @param roleId 角色id（非1，2，3则查询全部）
-     * @param account 账户为空则查询全部
+     * @param roleId   角色id（非1，2，3则查询全部）
+     * @param account  账户为空则查询全部
      * @return
      */
     @RequiresAuthentication
     @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @PostMapping("/pageUser")
-    public Res pageUser(@RequestParam int page, @RequestParam int pageSize, @RequestParam int roleId,  String account) {
+    public Res pageUser(@RequestParam int page, @RequestParam int pageSize, @RequestParam int roleId, String account) {
         log.info("分页+账户模糊查询用户信息");
         Page<User> userIPage = new Page<>(page, pageSize);
         

@@ -180,7 +180,7 @@ public class JwtFilter extends AuthenticatingFilter {
      */
     private void onLoginFail(ServletResponse response) throws IOException {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
-        httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
         httpResponse.getWriter().write(JSONUtil.toJsonStr(Res.fail(403, "token expired,Please login again", null)));
     }
     

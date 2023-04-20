@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.errorbook.errorbookv1.utils.XSLUtils.parseEquations;
 
@@ -109,10 +110,12 @@ public class QuestionController {
             }
         }
     }
+    */
     
     /**
      * 根据多个id查对应题目信息
      * 不传则查询全部
+     * 一般用于查某到具体题目的信息。
      *
      * @param questionIds
      * @return
@@ -120,16 +123,70 @@ public class QuestionController {
     @RequiresAuthentication
     @PostMapping("/listQuestion")
     public Res listQuestion(@RequestBody IdListDto questionIds) {
+        
         if (questionIds.getIds().length == 0) {
             return Res.succ(questionService.list());
         }
         Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
+        
         return Res.succ(questions);
+    }
+    
+    /**
+     * 分页+分类+题目模糊 查询题目的收藏人数
+     * 不传则查询全部（主要是老师去使用这个功能）
+     *
+     * @param page
+     * @param pageSize
+     * @param questionDto
+     * @return
+     */
+    @RequiresAuthentication
+    @PostMapping("/pageQuestionCollection")
+    public Res pageQuestionCollection(int page, int pageSize, @RequestBody QuestionDto questionDto) {
+        Long subjectId = questionDto.getSubjectId();
+        Long chapterId = questionDto.getChapterId();
+        Long sectionId = questionDto.getSectionId();
+        if(questionDto.getTitle()==null)questionDto.setTitle("");
+        String title = questionDto.getTitle();
+        
+        Page<QuestionCollectionDto> questionCollectionDtoPage = new Page<>();
+        
+        Page<Question> questionPage = new Page<>(page, pageSize);
+        
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        //select部分字段
+        queryWrapper.eq(subjectId != 0, Question::getSubjectId, subjectId)
+                .eq(chapterId != 0, Question::getChapterId, chapterId)
+                .eq(sectionId != 0, Question::getSectionId, sectionId)
+                .like(StringUtils.isNotEmpty(title), Question::getTitle, title)
+                .select(Question::getId, Question::getSubjectId, Question::getChapterId, Question::getSectionId, Question::getPublisher, Question::getTitle);
+        
+        questionService.page(questionPage, queryWrapper);
+        
+        BeanUtils.copyProperties(questionPage, questionCollectionDtoPage, "records");
+        
+        List<QuestionCollectionDto> dtoList = questionPage.getRecords().stream().map((item) -> {
+            QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
+        
+            int count = collectionService.count(new LambdaQueryWrapper<com.errorbook.errorbookv1.entity.Collection>()
+                    .eq(com.errorbook.errorbookv1.entity.Collection::getQuestionId, item.getId()));
+            BeanUtils.copyProperties(item, questionCollectionDto);
+            questionCollectionDto.setNumber((long) count);
+            questionCollectionDto.setIfCollected(count != 0);
+        
+            return questionCollectionDto;
+        }).collect(Collectors.toList());
+    
+        questionCollectionDtoPage.setRecords(dtoList);
+        
+        return Res.succ(questionCollectionDtoPage);
     }
     
     /**
      * 根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
      * 不传题目id则查询全部
+     * （具体功能：用户查看自己的收藏夹里面的题目）
      *
      * @param idListDto
      * @return
@@ -137,6 +194,7 @@ public class QuestionController {
     @RequiresAuthentication
     @PostMapping("/searchQuestion")
     public Res searchQuestion(@RequestBody IdListDto idListDto) {
+        log.info(String.valueOf(idListDto));
         User user = userService.getById(idListDto.getUserId());
         if (user == null) {
             return Res.fail("该用户不存在");
@@ -172,6 +230,7 @@ public class QuestionController {
      * 分页+模糊查询题目
      * 传值为0则查询全部
      * 按更改时间降序
+     * select部分字段
      *
      * @param page
      * @param pageSize
@@ -184,6 +243,7 @@ public class QuestionController {
         Long subjectId = questionDto.getSubjectId();
         Long chapterId = questionDto.getChapterId();
         Long sectionId = questionDto.getSectionId();
+        if(questionDto.getTitle()==null)questionDto.setTitle("");
         String title = questionDto.getTitle();
         Page<Question> questionPage = new Page<>(page, pageSize);
         
@@ -192,7 +252,8 @@ public class QuestionController {
         queryWrapper.eq(subjectId != 0, Question::getSubjectId, subjectId)
                 .eq(chapterId != 0, Question::getChapterId, chapterId)
                 .eq(sectionId != 0, Question::getSectionId, sectionId)
-                .like(StringUtils.isNotEmpty(title), Question::getTitle, title);
+                .like(StringUtils.isNotEmpty(title), Question::getTitle, title)
+                .select(Question::getId, Question::getSubjectId, Question::getChapterId, Question::getSectionId, Question::getPublisher, Question::getTitle);
         //查询排序为最近更改的
         queryWrapper.orderByDesc(Question::getUpdateTime);
         
@@ -237,7 +298,7 @@ public class QuestionController {
     @RequiresAuthentication
     @RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @PutMapping("/update")
-    private Res update(@Validated @RequestBody Question question){
+    public Res update(@Validated @RequestBody Question question){
         return null;
     }*/
 }

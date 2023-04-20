@@ -52,7 +52,7 @@ public class SubjectController {
      */
     @RequiresAuthentication
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
-    @GetMapping("/listSubject")
+    @PostMapping("/listSubject")
     public Res listSubject() {
         List<Subject> subjects = subjectService.list();
         return Res.succ(subjects);
@@ -82,8 +82,8 @@ public class SubjectController {
     @RequiresAuthentication
     @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @PutMapping("/update")
-    private Res update(@Validated @RequestBody Subject subject) {
-        
+    public Res update(@Validated @RequestBody Subject subject) {
+        log.info(subject.toString());
         boolean sucToUpd = subjectService.updateById(subject);
         if (sucToUpd) return Res.succ("修改成功");
         else return Res.fail("修改失败");

@@ -5,6 +5,7 @@ import com.errorbook.errorbookv1.common.lang.Res;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.ShiroException;
 import org.apache.shiro.authz.UnauthenticatedException;
+import org.apache.shiro.authz.UnauthorizedException;
 import org.mybatis.spring.MyBatisSystemException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
@@ -35,6 +36,12 @@ public class GlobalExceptionHandler {
     public Res handler(ShiroException e) {
         log.error("登录或验证时异常：----------------{}", e);
         return Res.fail(401, e.getMessage(), null);
+    }
+    // 不具有对应的角色
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ExceptionHandler(UnauthorizedException.class)
+    public Res handler(UnauthorizedException e) {
+        return Res.fail(401, "你当前的角色没有权限访问", null);
     }
     
     // 捕捉shiro的异常（角色权限）

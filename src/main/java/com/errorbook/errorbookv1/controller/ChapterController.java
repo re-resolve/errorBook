@@ -40,8 +40,8 @@ public class ChapterController {
     @PostMapping("/insert")
     public Res insert(@Validated @RequestBody Chapter chapter) {
         Subject subject = subjectService.getById(chapter.getSubjectId());
-        if(subject==null){
-            return  Res.fail("该章的学科不存在");
+        if (subject == null) {
+            return Res.fail("该章的学科不存在");
         }
         
         String chapterName = chapter.getChapterName();
@@ -68,12 +68,12 @@ public class ChapterController {
      */
     @RequiresAuthentication
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
-    @GetMapping("/listChapter")
+    @PostMapping("/listChapter")
     public Res listChapter(@RequestBody IdListDto subjectIds) {
         if (subjectIds.getIds().length == 0) {
             return Res.succ(chapterService.list());
         }
-        Collection<Chapter> chapters = chapterService.listByIds(Arrays.asList(subjectIds.getIds()));
+        Collection<Chapter> chapters = chapterService.list(new LambdaQueryWrapper<Chapter>().in(Chapter::getSubjectId, Arrays.asList(subjectIds.getIds())));
         return Res.succ(chapters);
     }
     
@@ -102,12 +102,12 @@ public class ChapterController {
     @RequiresAuthentication
     @RequiresRoles(value = {"老师", "管理员"}, logical = Logical.OR)
     @PutMapping("/update")
-    private Res update(@Validated @RequestBody Chapter chapter) {
+    public Res update(@Validated @RequestBody Chapter chapter) {
         
         Subject subject = subjectService.getById(chapter.getSubjectId());
         
         if (subject == null) {
-            return Res.fail("该学科不存在");
+            return Res.fail("要修改的章的学科不存在");
         }
         boolean sucToUpd = chapterService.updateById(chapter);
         if (sucToUpd) return Res.succ("修改成功");
