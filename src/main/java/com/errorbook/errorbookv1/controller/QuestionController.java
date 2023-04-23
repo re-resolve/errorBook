@@ -3,9 +3,8 @@ package com.errorbook.errorbookv1.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.errorbook.errorbookv1.common.dto.IdListDto;
-import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
-import com.errorbook.errorbookv1.common.dto.QuestionDto;
+import com.errorbook.errorbookv1.service.dto.IdListDto;
+import com.errorbook.errorbookv1.service.dto.QuestionCollectionDto;
 import com.errorbook.errorbookv1.common.lang.Res;
 import com.errorbook.errorbookv1.entity.Question;
 import com.errorbook.errorbookv1.entity.User;
@@ -76,13 +75,13 @@ public class QuestionController {
         
         String ommlXslPath = "XSLT/OMML2MML.XSL";
         String mmlXslPath = "XSLT/mml2tex/mmltex.xsl";
-        List<Question> results = parseEquations
+        List<com.errorbook.errorbookv1.entity.Question> results = parseEquations
                 (docxFile, ommlXslPath, mmlXslPath, "XSLT/mml2tex/"
-                        , "<latex>", "</latex>"
+                        , "", ""
                         , "<picture>", "</picture>"
                         , subjectService, chapterService, sectionService);
         if (results.size() != 0) {
-            for (Question result : results) {
+            for (com.errorbook.errorbookv1.entity.Question result : results) {
                 result.setPublisher(id);
                 log.info(result.toString());
             }
@@ -128,8 +127,20 @@ public class QuestionController {
             return Res.succ(questionService.list());
         }
         Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
+    
+        Collection<QuestionCollectionDto> dtoList = new ArrayList<>();
         
-        return Res.succ(questions);
+        for (Question question : questions) {
+            QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
+        
+            BeanUtils.copyProperties(question, questionCollectionDto);
+
+            //设置学科、章、节的名称
+            questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
+        
+            dtoList.add(questionCollectionDto);
+        }
+        return Res.succ(dtoList);
     }
     
     /**
@@ -138,17 +149,17 @@ public class QuestionController {
      *
      * @param page
      * @param pageSize
-     * @param questionDto
+     * @param question
      * @return
      */
     @RequiresAuthentication
     @PostMapping("/pageQuestionCollection")
-    public Res pageQuestionCollection(int page, int pageSize, @RequestBody QuestionDto questionDto) {
-        Long subjectId = questionDto.getSubjectId();
-        Long chapterId = questionDto.getChapterId();
-        Long sectionId = questionDto.getSectionId();
-        if(questionDto.getTitle()==null)questionDto.setTitle("");
-        String title = questionDto.getTitle();
+    public Res pageQuestionCollection(int page, int pageSize, @RequestBody Question question) {
+        Long subjectId = question.getSubjectId();
+        Long chapterId = question.getChapterId();
+        Long sectionId = question.getSectionId();
+        if(question.getTitle()==null) question.setTitle("");
+        String title = question.getTitle();
         
         Page<QuestionCollectionDto> questionCollectionDtoPage = new Page<>();
         
@@ -174,7 +185,10 @@ public class QuestionController {
             BeanUtils.copyProperties(item, questionCollectionDto);
             questionCollectionDto.setNumber((long) count);
             questionCollectionDto.setIfCollected(count != 0);
-        
+            
+            //设置学科、章、节的名称
+            questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
+            
             return questionCollectionDto;
         }).collect(Collectors.toList());
     
@@ -220,6 +234,9 @@ public class QuestionController {
                     .eq(com.errorbook.errorbookv1.entity.Collection::getQuestionId, question.getId()));
             //查询用户是否收藏改题目
             questionCollectionDto.setIfCollected(collection != null);
+            //设置学科、章、节的名称
+            questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
+            
             dtoList.add(questionCollectionDto);
         }
         return Res.succ(dtoList);
@@ -234,19 +251,22 @@ public class QuestionController {
      *
      * @param page
      * @param pageSize
-     * @param questionDto
+     * @param question
      * @return
      */
     @RequiresAuthentication
     @PostMapping("/pageQuestion")
-    public Res pageQuestion(int page, int pageSize, @RequestBody QuestionDto questionDto) {
-        Long subjectId = questionDto.getSubjectId();
-        Long chapterId = questionDto.getChapterId();
-        Long sectionId = questionDto.getSectionId();
-        if(questionDto.getTitle()==null)questionDto.setTitle("");
-        String title = questionDto.getTitle();
+    public Res pageQuestion(int page, int pageSize, @RequestBody Question question) {
+        Long subjectId = question.getSubjectId();
+        Long chapterId = question.getChapterId();
+        Long sectionId = question.getSectionId();
+        if(question.getTitle()==null) question.setTitle("");
+        String title = question.getTitle();
         Page<Question> questionPage = new Page<>(page, pageSize);
         
+        Page<QuestionCollectionDto> questionDtoPage = new Page<>(page, pageSize);
+        List<QuestionCollectionDto> dtoList;
+    
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
         
         queryWrapper.eq(subjectId != 0, Question::getSubjectId, subjectId)
@@ -255,11 +275,26 @@ public class QuestionController {
                 .like(StringUtils.isNotEmpty(title), Question::getTitle, title)
                 .select(Question::getId, Question::getSubjectId, Question::getChapterId, Question::getSectionId, Question::getPublisher, Question::getTitle);
         //查询排序为最近更改的
-        queryWrapper.orderByDesc(Question::getUpdateTime);
+        queryWrapper.orderByDesc(com.errorbook.errorbookv1.entity.Question::getUpdateTime);
         
         questionService.page(questionPage, queryWrapper);
         
-        return Res.succ(questionPage);
+        BeanUtils.copyProperties(questionPage,questionDtoPage,"records");
+    
+        dtoList = questionPage.getRecords().stream().map((item)->{
+            QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
+            
+            BeanUtils.copyProperties(item, questionCollectionDto);
+            
+            //设置学科、章、节的名称
+            questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
+            
+            return questionCollectionDto;
+        }).collect(Collectors.toList());
+        
+        questionDtoPage.setRecords(dtoList);
+        
+        return Res.succ(questionDtoPage);
     }
     
     /*    *//**
