@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.Map;
 
 public class OBSHandler {
-    private String accessKeyId = "MELRHZB3PBWUUBMWJPDG";// 华为云的 Access Key Id
+    private String accessKeyId ;// 华为云的 Access Key Id
     
-    private String accessKeySecret= "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";// 华为云的 Access Key Secret
+    private String accessKeySecret;// 华为云的 Access Key Secret
     
-    private String endpoint ="obs.cn-south-1"; // 华为云连接的地址节点
+    private String endpoint; // 华为云连接的地址节点
     
     private String obsBucketName; // 创建的桶的名称
     
@@ -79,7 +79,7 @@ public class OBSHandler {
      */
     public String getUrl(String fileName) {
     
-        String url = "https:"+this.getUrlByBucketName(this.obsBucketName, this.endpoint) + fileName;
+        String url = "http:"+this.getUrlByBucketName(this.obsBucketName, this.endpoint) + fileName;
         return url;
     
     }

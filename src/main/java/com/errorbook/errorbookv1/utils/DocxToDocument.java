@@ -1,13 +1,12 @@
 package com.errorbook.errorbookv1.utils;
 
-import ch.qos.logback.classic.Level;
+import cn.hutool.core.lang.UUID;
 import com.errorbook.errorbookv1.common.exception.CustomException;
 import com.errorbook.errorbookv1.util.OBSHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.*;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
@@ -27,13 +26,16 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class DocxToDocument {
-    public static final String ACCESS_KEY_ID = "MELRHZB3PBWUUBMWJPDG";
-    public static final String ACCESS_KEY_SECRET = "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";
-    public static final String ENDPOINT = "obs.cn-south-1.myhuaweicloud.com";
-    public static final String OBS_BUCKET_NAME = "errorbook1.0";
+    public static String ACCESS_KEY_ID ;
+    public static String ACCESS_KEY_SECRET ;
+    public static String ENDPOINT ;
+    public static String OBS_BUCKET_NAME ;
+    public static OBSHandler OBS_HANDLER ;
+    public static final ConcurrentHashMap<String, XWPFPictureData> PICTURES_MAP = new ConcurrentHashMap<>();
     /*static {
         System.setProperty("javax.xml.parsers.DocumentBuilderFactory", "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl");
         System.setProperty("javax.xml.parsers.SAXParserFactory", "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
@@ -185,9 +187,9 @@ public class DocxToDocument {
                 Node oMathNode = nodeList.item(i);
                 
                 String omml = DocxToDocument.getOMML(oMathNode);
-                log.info("omml: " + omml);
+                //log.info("omml: " + omml);
                 String mml = DocxToDocument.xslConvert(omml, ommlXslPath, null);
-                log.info("mml: " + mml);
+                //log.info("mml: " + mml);
                 String latex = DocxToDocument.convertMML2Latex(mml, mmlXslPath, xslFolderPath);
                 //log.info("latex: " + latex);
                 
@@ -249,7 +251,7 @@ public class DocxToDocument {
      * @return
      */
     private static List<String> pictures2OBS_Link(XWPFDocument doc) {
-        log.info("将字节流上传到桶中");
+        log.info("将图片暂存");
         List<String> res = new ArrayList<>();
         try {
             List<XWPFPictureData> pictures = new ArrayList<>();
@@ -267,30 +269,17 @@ public class DocxToDocument {
                 }
             }
             log.info("XWPFDocument共有 "+pictures.size()+" 张不同的图片");
+    
             for (XWPFPictureData picture : pictures) {
-                byte[] bytes = picture.getData();
-                // TODO 将字节流上传到桶中
+                // TODO 将picture暂存
+                String fileName = "picture/" + UUID.randomUUID() + ".jpg";
+
+                String url = OBS_HANDLER.getUrl(fileName);
                 
-                String fileName = "picture/" + System.currentTimeMillis() + ".jpg";
-                
-                OBSHandler obsHandler = new OBSHandler(ACCESS_KEY_ID, ACCESS_KEY_SECRET, ENDPOINT);
-                
-                obsHandler.setObsBucketName(OBS_BUCKET_NAME);
-                
-                // 通过获取slf4j日志工厂类的配置文件路径（ch.qos.logback.classic.Logger是Logback框架的核心组件之一，用于在Java应用程序中记录日志信息。）
-                // 通过 getLogger 方法，可以为不同的类("com.obs")创建不同的日志记录器实例，并通过这些实例记录不同的日志消息。
-                ch.qos.logback.classic.Logger obsLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.obs");
-                // 设置只有当warn及以上的日志级别才会打印到控制台中
-                obsLogger.setLevel(Level.WARN);
-                
-                //上传图片
-                obsHandler.putFileByStream(OBS_BUCKET_NAME, fileName, new ByteArrayInputStream(bytes));
-                
-                String url = obsHandler.getUrl(fileName);
+                PICTURES_MAP.put(fileName,picture);
                 
                 res.add(url);
-                log.info("已上传至OBS的图片链接："+url);
-                
+                log.info(url);
             }
         } catch (Exception e) {
             e.printStackTrace();

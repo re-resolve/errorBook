@@ -1,5 +1,6 @@
 package com.errorbook.errorbookv1.utils;
 
+import ch.qos.logback.classic.Level;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.errorbook.errorbookv1.common.exception.CustomException;
 import com.errorbook.errorbookv1.entity.Chapter;
@@ -9,8 +10,11 @@ import com.errorbook.errorbookv1.entity.Subject;
 import com.errorbook.errorbookv1.service.ChapterService;
 import com.errorbook.errorbookv1.service.SectionService;
 import com.errorbook.errorbookv1.service.SubjectService;
+import com.errorbook.errorbookv1.util.OBSHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.xwpf.usermodel.XWPFPictureData;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -20,15 +24,29 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.xpath.*;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("JavaDoc")
 @Slf4j
 
 public class XSLUtils extends DocxToDocument {
-    
+    static {
+        //华为云OBS服务的配置信息
+        ACCESS_KEY_ID = "MELRHZB3PBWUUBMWJPDG";
+        ACCESS_KEY_SECRET = "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";
+        ENDPOINT = "obs.cn-south-1.myhuaweicloud.com";
+        OBS_BUCKET_NAME = "errorbook1.0";
+        OBS_HANDLER = new OBSHandler(ACCESS_KEY_ID, ACCESS_KEY_SECRET, ENDPOINT,OBS_BUCKET_NAME);
+        // 通过获取slf4j日志工厂类的配置文件路径（ch.qos.logback.classic.Logger是Logback框架的核心组件之一，用于在Java应用程序中记录日志信息。）
+        // 通过 getLogger 方法，可以为不同的类("com.obs")创建不同的日志记录器实例，并通过这些实例记录不同的日志消息。
+        ch.qos.logback.classic.Logger obsLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.obs");
+        // 设置只有当warn及以上的日志级别才会打印到控制台中
+        obsLogger.setLevel(Level.WARN);
+    }
     /**
      * 将word中的数学公式转化为latex语言、图片转化为华为云obs的对象的下载链接的字符串，并返回OMML格式的Document对象
      *
@@ -54,11 +72,20 @@ public class XSLUtils extends DocxToDocument {
             , String pictureLeftSeparator, String pictureRightSeparator
             , SubjectService subjectService, ChapterService chapterService, SectionService sectionService)
             throws Exception {
-        log.info("docx2Document");
+        log.info("docx转换成Document");
         Document ommlDoc = docx2Document(docxFile, ommlXslPath, mmlXslPath, xslFolderPath, latexLeftSeparator, latexRightSeparator, pictureLeftSeparator, pictureRightSeparator);
         
-        log.info("ommlDoc2Questions");
+        log.info("ommlDoc转换成实体类Questions");
         List<Question> questions = ommlDoc2Questions(ommlDoc, subjectService, chapterService, sectionService);
+        
+        log.info("word文档格式正确，开始将图片上传至华为云OBS服务");
+        // 成功转换为实体类后，才上传图片
+        for (Map.Entry<String, XWPFPictureData> fileNameAndPictureData : PICTURES_MAP.entrySet()) {
+            //获取图片的字节数据
+            byte[] bytes = fileNameAndPictureData.getValue().getData();
+            //上传图片
+            OBS_HANDLER.putFileByStream(OBS_BUCKET_NAME, fileNameAndPictureData.getKey(), new ByteArrayInputStream(bytes));
+        }
         return questions;
     }
     
@@ -98,24 +125,43 @@ public class XSLUtils extends DocxToDocument {
             }
         }
         if (categoryIndexs.size() % 3 != 0 || categoryIndexs.size() == 0) {
+            log.error("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上中文冒号)");
             throw new CustomException("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上中文冒号)");
         }
         // TODO 遍历每一个节点,标记出想要提取的固定部分
         List<Integer> indexs = new ArrayList<>();
+        int order=0;
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             String textContent = node.getTextContent();
             int length = textContent.length();
-            if (length > 3) {
-                if (textContent.startsWith("题目：")
-                        || textContent.startsWith("错解：")
-                        || textContent.startsWith("分析：")
-                        || textContent.startsWith("正解：")) {
-                    indexs.add(i);
+            if (length >= 3) {
+                if(textContent.startsWith("题目：")||textContent.startsWith("错解：")||textContent.startsWith("分析：")||textContent.startsWith("正解：")){
+                    if (order==0&&textContent.startsWith("题目：")) {
+                        indexs.add(i);
+                        ++order;
+                    }
+                    else if (order==1&&textContent.startsWith("错解：")) {
+                        indexs.add(i);
+                        ++order;
+                    }
+                    else if (order==2&&textContent.startsWith("分析：")) {
+                        indexs.add(i);
+                        ++order;
+                    }
+                    else if (order==3&&textContent.startsWith("正解：")) {
+                        indexs.add(i);
+                        order=0;
+                    }
+                    else{
+                        log.error("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i+"行（不包括空行）内容为：("+textContent+")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)】");
+                        throw new CustomException("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i+"行（不包括空行）内容为：("+textContent+")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)】");
+                    }
                 }
             }
         }
         if (indexs.size() % 4 != 0 || indexs.size() == 0) {
+            log.error("导入的word文档格式错误(题目、错解、分析、正解这4个标识符的数量为" + indexs.size()+")，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)");
             throw new CustomException("导入的word文档格式错误，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)");
         }
         List<Question> questions = text2json(nodeList, categoryIndexs, indexs, subjectService, chapterService, sectionService);

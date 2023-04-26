@@ -1,4 +1,4 @@
 spring:
   profiles:
-    active: test # Deployment environment
+    active: dev # Deployment environment
 
