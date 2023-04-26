@@ -144,31 +144,35 @@ public class XSLUtils extends DocxToDocument {
         StringBuilder correctAnsBuilder = new StringBuilder();
         
         Long subjectId = null;
+        String subjectName =null;
         Long chapterId = null;
+        String chapterName =null;
         Long sectionId = null;
+        String sectionName =null;
+    
         int j = 0;
         for (int i = 0; i < categoryIndexs.size(); i++) {
             if (i % 3 == 0) {//学科
-                String subjectName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(3);
+                subjectName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(3);
                 Subject subjectServiceOne = subjectService.getOne(new LambdaQueryWrapper<Subject>().eq(Subject::getSubjectName, subjectName));
                 if (subjectServiceOne != null) {
                     subjectId = subjectServiceOne.getId();
                 }
                 else {
-                    throw new CustomException("导入的word中某学科不存在，无法将文本内容转换为对象");
+                    throw new CustomException("导入的word中学科: "+subjectName+" 不存在，无法将文本内容转换为对象");
                 }
             } else if (i % 3 == 1) {//章
-                String ChapterName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
-                Chapter chapterServiceOne = chapterService.getOne(new LambdaQueryWrapper<Chapter>().eq(Chapter::getChapterName, ChapterName));
+                chapterName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
+                Chapter chapterServiceOne = chapterService.getOne(new LambdaQueryWrapper<Chapter>().eq(Chapter::getSubjectId,subjectId).eq(Chapter::getChapterName, chapterName));
                 if (chapterServiceOne != null) {
                     chapterId = chapterServiceOne.getId();
                 }
                 else {
-                    throw new CustomException("导入的word中某一章不存在，无法将文本内容转换为对象");
+                    throw new CustomException("导入的word中学科为: "+subjectName+"的章："+chapterName+" 不存在，无法将文本内容转换为对象");
                 }
             } else {//节
-                String sectionName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
-                Section sectionServiceOne = sectionService.getOne(new LambdaQueryWrapper<Section>().eq(Section::getSectionName, sectionName));
+                sectionName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
+                Section sectionServiceOne = sectionService.getOne(new LambdaQueryWrapper<Section>().eq(Section::getChapterId,chapterId).eq(Section::getSectionName, sectionName));
                 if (sectionServiceOne != null) {
                     sectionId = sectionServiceOne.getId();
                     for (; j < indexs.size(); j++) {
@@ -215,7 +219,7 @@ public class XSLUtils extends DocxToDocument {
                     }
                 }
                 else{
-                    throw new CustomException("导入的word中某一节不存在，无法将文本内容转换为对象");
+                    throw new CustomException("导入的word中的学科为："+subjectName+" 的章为："+chapterName+" 的节: "+ sectionName+" 不存在，无法将文本内容转换为对象");
                 }
             }
         }

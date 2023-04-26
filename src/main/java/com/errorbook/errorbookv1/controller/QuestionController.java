@@ -3,12 +3,12 @@ package com.errorbook.errorbookv1.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.errorbook.errorbookv1.service.dto.IdListDto;
-import com.errorbook.errorbookv1.service.dto.QuestionCollectionDto;
 import com.errorbook.errorbookv1.common.lang.Res;
 import com.errorbook.errorbookv1.entity.Question;
 import com.errorbook.errorbookv1.entity.User;
 import com.errorbook.errorbookv1.service.*;
+import com.errorbook.errorbookv1.service.dto.IdListDto;
+import com.errorbook.errorbookv1.service.dto.QuestionCollectionDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.shiro.authz.annotation.Logical;
@@ -24,10 +24,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.errorbook.errorbookv1.utils.XSLUtils.parseEquations;
@@ -78,7 +75,7 @@ public class QuestionController {
         List<com.errorbook.errorbookv1.entity.Question> results = parseEquations
                 (docxFile, ommlXslPath, mmlXslPath, "XSLT/mml2tex/"
                         , "", ""
-                        , "<picture>", "</picture>"
+                        , "<picture>", "<picture>"
                         , subjectService, chapterService, sectionService);
         if (results.size() != 0) {
             for (com.errorbook.errorbookv1.entity.Question result : results) {
@@ -145,7 +142,7 @@ public class QuestionController {
     
     /**
      * 分页+分类+题目模糊 查询题目的收藏人数
-     * 不传则查询全部（主要是老师去使用这个功能）
+     * 不传则查询全部
      *
      * @param page
      * @param pageSize
@@ -191,7 +188,9 @@ public class QuestionController {
             
             return questionCollectionDto;
         }).collect(Collectors.toList());
-    
+        // 向列表添加元素,对列表进行排序
+        Collections.sort(dtoList, (q1, q2) -> (int) (q2.getNumber() - q1.getNumber()));
+        
         questionCollectionDtoPage.setRecords(dtoList);
         
         return Res.succ(questionCollectionDtoPage);
@@ -200,7 +199,7 @@ public class QuestionController {
     /**
      * 根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
      * 不传题目id则查询全部
-     * （具体功能：用户查看自己的收藏夹里面的题目）
+     * （具体功能：点击题目 和 用户查看自己的收藏夹里面的题目）
      *
      * @param idListDto
      * @return

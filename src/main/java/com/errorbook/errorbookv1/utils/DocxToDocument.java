@@ -6,10 +6,10 @@ import com.errorbook.errorbookv1.util.OBSHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFPictureData;
+import org.apache.poi.xwpf.usermodel.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -30,6 +30,10 @@ import java.util.List;
 
 @Slf4j
 public class DocxToDocument {
+    public static final String ACCESS_KEY_ID = "MELRHZB3PBWUUBMWJPDG";
+    public static final String ACCESS_KEY_SECRET = "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";
+    public static final String ENDPOINT = "obs.cn-south-1.myhuaweicloud.com";
+    public static final String OBS_BUCKET_NAME = "errorbook1.0";
     /*static {
         System.setProperty("javax.xml.parsers.DocumentBuilderFactory", "com.sun.org.apache.xerces.internal.jaxp.DocumentBuilderFactoryImpl");
         System.setProperty("javax.xml.parsers.SAXParserFactory", "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
@@ -80,6 +84,10 @@ public class DocxToDocument {
         //4、 TODO 遍历图像节点
         //将图片->bytes->encode(base64)
         log.info("处理图像");
+        /**
+         * XWPFDocument 对象的 getAllPictures 方法会返回所有不同的图片，不会有重复的图片。
+         * 如果多个段落或者表格单元格中使用了同一张图片，它们都会指向同一个 XWPFPictureData 对象。这个方法返回的是所有不同的 XWPFPictureData 对象。
+         */
         List<String> pictures = DocxToDocument.pictures2OBS_Link(doc);
         DocxToDocument.setPicture2Context(pictureLeftSeparator, pictureRightSeparator, pictures, ommlDoc);
         return ommlDoc;
@@ -123,19 +131,25 @@ public class DocxToDocument {
      */
     private static void setPicture2Context(String pictureLeftSeparator, String pictureRightSeparator, List<String> pictures, Document ommlDoc) throws XPathExpressionException {
         log.info("picture -> context");
-        // 创建XPath对象并编译表达式
-        XPath xpath = XPathFactory.newInstance().newXPath();
+        try {
+            // 创建XPath对象并编译表达式
+            XPath xpath = XPathFactory.newInstance().newXPath();
         
-        int pictureIndex = 0;
-        //其中 local-name() 函数用于获取节点名称中的本地名称部分，避免命名空间的问题。
-        XPathExpression expr2 = xpath.compile("//*[local-name()='drawing']");
-        // 执行XPath表达式，获取所有的节点
-        NodeList nodeList2 = (NodeList) expr2.evaluate(ommlDoc, XPathConstants.NODESET);
-        // 遍历每一个节点
-        for (int i = 0; i < nodeList2.getLength(); i++) {
-            Node node = nodeList2.item(i);
-            //将picture格式的字符串重新set到节点的文本内容,并添加分隔符
-            node.setTextContent(pictureLeftSeparator + pictures.get(pictureIndex++) + pictureRightSeparator);
+            int pictureIndex = 0;
+            //其中 local-name() 函数用于获取节点名称中的本地名称部分，避免命名空间的问题。
+            XPathExpression expr2 = xpath.compile("//*[local-name()='drawing']");
+            // 执行XPath表达式，获取所有的节点
+            NodeList nodeList2 = (NodeList) expr2.evaluate(ommlDoc, XPathConstants.NODESET);
+            log.info("word文档中有 "+nodeList2.getLength()+" 张图片");
+            // 遍历每一个节点
+            for (int i = 0; i < nodeList2.getLength(); i++) {
+                Node node = nodeList2.item(i);
+                //将picture格式的字符串重新set到节点的文本内容,并添加分隔符
+                node.setTextContent(pictureLeftSeparator + pictures.get(pictureIndex++) + pictureRightSeparator);
+            }
+        } catch (XPathExpressionException | DOMException e) {
+            e.printStackTrace();
+            throw new CustomException("读取word文档中的图片时发生异常");
         }
     }
     
@@ -153,31 +167,36 @@ public class DocxToDocument {
      */
     private static void setLatex2Context(String ommlXslPath, String mmlXslPath, String xslFolderPath, String latexLeftSeparator, String latexRightSeparator, Document ommlDoc) throws XPathExpressionException, TransformerException {
         log.info("omml -> mml -> latex -> context");
-        // TODO: 遍历数学节点
-        // 创建XPath对象并编译表达式
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        //其中 local-name() 函数用于获取节点名称中的本地名称部分，避免命名空间的问题。
-        XPathExpression expr = xpath.compile("//*[local-name()='oMath']");
-        // 执行XPath表达式，获取所有的数学公式节点
-        NodeList nodeList = (NodeList) expr.evaluate(ommlDoc, XPathConstants.NODESET);
+        try {
+            // TODO: 遍历数学节点
+            // 创建XPath对象并编译表达式
+            XPath xpath = XPathFactory.newInstance().newXPath();
+            //其中 local-name() 函数用于获取节点名称中的本地名称部分，避免命名空间的问题。
+            XPathExpression expr = xpath.compile("//*[local-name()='oMath']");
+            // 执行XPath表达式，获取所有的数学公式节点
+            NodeList nodeList = (NodeList) expr.evaluate(ommlDoc, XPathConstants.NODESET);
         
-        log.info("获取数学公式节点的XML内容(OMML格式的内容)");
-        log.info("OMML to MML to Latex");
+            log.info("获取数学公式节点的XML内容(OMML格式的内容)");
+            log.info("OMML to MML to Latex");
         
-        // 遍历每一个数学公式节点
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            // TODO: 处理每一个数学公式节点
-            Node oMathNode = nodeList.item(i);
-            
-            String omml = DocxToDocument.getOMML(oMathNode);
-            //log.info("omml: " + omml);
-            String mml = DocxToDocument.xslConvert(omml, ommlXslPath, null);
-            //log.info("mml: " + mml);
-            String latex = DocxToDocument.convertMML2Latex(mml, mmlXslPath, xslFolderPath);
-            //log.info("latex: " + latex);
-            
-            //将latex格式的字符串重新set到节点的文本内容,并添加分隔符
-            oMathNode.setTextContent(latexLeftSeparator + latex + latexRightSeparator);
+            // 遍历每一个数学公式节点
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                // TODO: 处理每一个数学公式节点
+                Node oMathNode = nodeList.item(i);
+                
+                String omml = DocxToDocument.getOMML(oMathNode);
+                log.info("omml: " + omml);
+                String mml = DocxToDocument.xslConvert(omml, ommlXslPath, null);
+                log.info("mml: " + mml);
+                String latex = DocxToDocument.convertMML2Latex(mml, mmlXslPath, xslFolderPath);
+                //log.info("latex: " + latex);
+                
+                //将latex格式的字符串重新set到节点的文本内容,并添加分隔符
+                oMathNode.setTextContent(latexLeftSeparator + latex + latexRightSeparator);
+            }
+        } catch (XPathExpressionException | DOMException | TransformerException e) {
+            e.printStackTrace();
+            throw new CustomException("处理word文档中的数学公式时发生异常");
         }
     }
     
@@ -232,36 +251,50 @@ public class DocxToDocument {
     private static List<String> pictures2OBS_Link(XWPFDocument doc) {
         log.info("将字节流上传到桶中");
         List<String> res = new ArrayList<>();
-        List<XWPFPictureData> pictures = doc.getAllPictures();
-        for (XWPFPictureData picture : pictures) {
-            byte[] bytes = picture.getData();
-            // TODO 将字节流上传到桶中
-            String accessKeyId = "MELRHZB3PBWUUBMWJPDG";
-            String accessKeySecret = "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";
-            String endpoint = "obs.cn-south-1.myhuaweicloud.com";
-            String obsBucketName = "errorbook1.0";
-            
-            String fileName = "picture/" + System.currentTimeMillis() + ".jpg";
-            
-            
-            OBSHandler obsHandler = new OBSHandler(accessKeyId, accessKeySecret, endpoint);
-            
-            obsHandler.setObsBucketName(obsBucketName);
-            
-            // 通过获取slf4j日志工厂类的配置文件路径（ch.qos.logback.classic.Logger是Logback框架的核心组件之一，用于在Java应用程序中记录日志信息。）
-            // 通过 getLogger 方法，可以为不同的类("com.obs")创建不同的日志记录器实例，并通过这些实例记录不同的日志消息。
-            ch.qos.logback.classic.Logger obsLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.obs");
-            // 设置只有当warn及以上的日志级别才会打印到控制台中
-            obsLogger.setLevel(Level.WARN);
-            
-            //上传图片
-            obsHandler.putFileByStream(obsBucketName, fileName, new ByteArrayInputStream(bytes));
-            
-            String url = obsHandler.getUrl(fileName);
-            
-            res.add(url);
-            System.out.println(url);
-            
+        try {
+            List<XWPFPictureData> pictures = new ArrayList<>();
+            // 遍历所有段落
+            for (XWPFParagraph para : doc.getParagraphs()) {
+                // 遍历段落中的所有run
+                for (XWPFRun run : para.getRuns()) {
+                    // 如果run是XWPFPicture，获取它的图片数据
+                    if (run.getEmbeddedPictures() != null && run.getEmbeddedPictures().size() != 0) {
+                        List<XWPFPicture> embeddedPictures = run.getEmbeddedPictures();
+                        for (XWPFPicture picture : embeddedPictures) {
+                            pictures.add(picture.getPictureData());
+                        }
+                    }
+                }
+            }
+            log.info("XWPFDocument共有 "+pictures.size()+" 张不同的图片");
+            for (XWPFPictureData picture : pictures) {
+                byte[] bytes = picture.getData();
+                // TODO 将字节流上传到桶中
+                
+                String fileName = "picture/" + System.currentTimeMillis() + ".jpg";
+                
+                OBSHandler obsHandler = new OBSHandler(ACCESS_KEY_ID, ACCESS_KEY_SECRET, ENDPOINT);
+                
+                obsHandler.setObsBucketName(OBS_BUCKET_NAME);
+                
+                // 通过获取slf4j日志工厂类的配置文件路径（ch.qos.logback.classic.Logger是Logback框架的核心组件之一，用于在Java应用程序中记录日志信息。）
+                // 通过 getLogger 方法，可以为不同的类("com.obs")创建不同的日志记录器实例，并通过这些实例记录不同的日志消息。
+                ch.qos.logback.classic.Logger obsLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.obs");
+                // 设置只有当warn及以上的日志级别才会打印到控制台中
+                obsLogger.setLevel(Level.WARN);
+                
+                //上传图片
+                obsHandler.putFileByStream(OBS_BUCKET_NAME, fileName, new ByteArrayInputStream(bytes));
+                
+                String url = obsHandler.getUrl(fileName);
+                
+                res.add(url);
+                log.info("已上传至OBS的图片链接："+url);
+                
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new CustomException("将图片上传到OBS时发生异常");
         }
         return res;
     }

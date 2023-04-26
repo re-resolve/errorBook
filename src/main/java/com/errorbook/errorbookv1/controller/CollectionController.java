@@ -31,7 +31,7 @@ public class CollectionController {
     public Res insert(@RequestBody Collection collection) {
         Collection newCollection = collectionService.getOne(new LambdaQueryWrapper<Collection>().eq(Collection::getQuestionId, collection.getQuestionId()).eq(Collection::getUserId, collection.getUserId()));
         if (newCollection != null) {
-            Res.fail("该题目已存在");
+            return Res.fail("该题目已存在");
         }
         boolean sucToSave = collectionService.save(collection);
         
@@ -59,15 +59,15 @@ public class CollectionController {
     
     /**
      * 删除一个收藏题目
-     *
-     * @param id
+     * @param userId
+     * @param questionId 为0的话，删除该用户所有收藏的题目
      * @return
      */
     @RequiresAuthentication
     //@RequiresRoles(value = {"老师","管理员"},logical = Logical.OR)
     @DeleteMapping("/deleteById")
-    public Res deleteById(Long id) {
-        boolean sucToDel = collectionService.removeById(id);
+    public Res deleteById(@RequestParam Long userId,@RequestParam Long questionId) {
+        boolean sucToDel = collectionService.remove(new LambdaQueryWrapper<Collection>().eq(Collection::getUserId,userId).eq(questionId!=0,Collection::getQuestionId,questionId));
         if (sucToDel) return Res.succ("成功取消收藏该题目");
         else return Res.fail("取消收藏失败");
     }
