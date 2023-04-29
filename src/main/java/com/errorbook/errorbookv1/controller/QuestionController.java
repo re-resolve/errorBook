@@ -247,7 +247,7 @@ public class QuestionController {
      * 传值为0则查询全部
      * 按更改时间降序
      * select部分字段
-     *
+     * (用户查询题目列表)
      * @param page
      * @param pageSize
      * @param question
@@ -255,7 +255,7 @@ public class QuestionController {
      */
     @RequiresAuthentication
     @PostMapping("/pageQuestion")
-    public Res pageQuestion(int page, int pageSize, @RequestBody Question question) {
+    public Res pageQuestion(int page, int pageSize,Long userId, @RequestBody Question question) {
         Long subjectId = question.getSubjectId();
         Long chapterId = question.getChapterId();
         Long sectionId = question.getSectionId();
@@ -274,7 +274,7 @@ public class QuestionController {
                 .like(StringUtils.isNotEmpty(title), Question::getTitle, title)
                 .select(Question::getId, Question::getSubjectId, Question::getChapterId, Question::getSectionId, Question::getPublisher, Question::getTitle);
         //查询排序为最近更改的
-        queryWrapper.orderByDesc(com.errorbook.errorbookv1.entity.Question::getUpdateTime);
+        //queryWrapper.orderByDesc(com.errorbook.errorbookv1.entity.Question::getUpdateTime);
         
         questionService.page(questionPage, queryWrapper);
         
@@ -285,6 +285,11 @@ public class QuestionController {
             
             BeanUtils.copyProperties(item, questionCollectionDto);
             
+            com.errorbook.errorbookv1.entity.Collection collection = collectionService.getOne(new LambdaQueryWrapper<com.errorbook.errorbookv1.entity.Collection>()
+                    .eq(com.errorbook.errorbookv1.entity.Collection::getUserId, userId)
+                    .eq(com.errorbook.errorbookv1.entity.Collection::getQuestionId, item.getId()));
+            //查询用户是否收藏改题目
+            questionCollectionDto.setIfCollected(collection != null);
             //设置学科、章、节的名称
             questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
             

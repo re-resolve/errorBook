@@ -143,13 +143,16 @@ public class DocxToDocument {
             // 执行XPath表达式，获取所有的节点
             NodeList nodeList2 = (NodeList) expr2.evaluate(ommlDoc, XPathConstants.NODESET);
             log.info("word文档中有 "+nodeList2.getLength()+" 张图片");
+            if(nodeList2.getLength()!=pictures.size()){
+                throw new CustomException("word文档中存在了表格等无法被读取的内容，请转换成图片再导入");
+            }
             // 遍历每一个节点
             for (int i = 0; i < nodeList2.getLength(); i++) {
                 Node node = nodeList2.item(i);
                 //将picture格式的字符串重新set到节点的文本内容,并添加分隔符
                 node.setTextContent(pictureLeftSeparator + pictures.get(pictureIndex++) + pictureRightSeparator);
             }
-        } catch (XPathExpressionException | DOMException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException("读取word文档中的图片时发生异常");
         }

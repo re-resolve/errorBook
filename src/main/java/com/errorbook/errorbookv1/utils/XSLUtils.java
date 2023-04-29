@@ -40,13 +40,14 @@ public class XSLUtils extends DocxToDocument {
         ACCESS_KEY_SECRET = "QBsYWvSA3CtGyp2EMBAgp9cNf6ZArAYwL8dZ7rjN";
         ENDPOINT = "obs.cn-south-1.myhuaweicloud.com";
         OBS_BUCKET_NAME = "errorbook1.0";
-        OBS_HANDLER = new OBSHandler(ACCESS_KEY_ID, ACCESS_KEY_SECRET, ENDPOINT,OBS_BUCKET_NAME);
+        OBS_HANDLER = new OBSHandler(ACCESS_KEY_ID, ACCESS_KEY_SECRET, ENDPOINT, OBS_BUCKET_NAME);
         // 通过获取slf4j日志工厂类的配置文件路径（ch.qos.logback.classic.Logger是Logback框架的核心组件之一，用于在Java应用程序中记录日志信息。）
         // 通过 getLogger 方法，可以为不同的类("com.obs")创建不同的日志记录器实例，并通过这些实例记录不同的日志消息。
         ch.qos.logback.classic.Logger obsLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.obs");
         // 设置只有当warn及以上的日志级别才会打印到控制台中
         obsLogger.setLevel(Level.WARN);
     }
+    
     /**
      * 将word中的数学公式转化为latex语言、图片转化为华为云obs的对象的下载链接的字符串，并返回OMML格式的Document对象
      *
@@ -119,50 +120,50 @@ public class XSLUtils extends DocxToDocument {
             if (length > 2) {
                 if (textContent.startsWith("学科：")
                         || textContent.startsWith("章：")
-                        || textContent.startsWith("节：")) {
+                        || textContent.startsWith("节：")
+                        || textContent.startsWith("学科:")
+                        || textContent.startsWith("章:")
+                        || textContent.startsWith("节:")) {
                     categoryIndexs.add(i);
                 }
             }
         }
         if (categoryIndexs.size() % 3 != 0 || categoryIndexs.size() == 0) {
-            log.error("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上中文冒号)");
-            throw new CustomException("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上中文冒号)");
+            log.error("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上冒号)");
+            throw new CustomException("导入的word文档格式错误，每一类题都必须包含3个部分：学科、章、节(并且各自后面接上冒号)");
         }
         // TODO 遍历每一个节点,标记出想要提取的固定部分
         List<Integer> indexs = new ArrayList<>();
-        int order=0;
+        int order = 0;
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node node = nodeList.item(i);
             String textContent = node.getTextContent();
             int length = textContent.length();
             if (length >= 3) {
-                if(textContent.startsWith("题目：")||textContent.startsWith("错解：")||textContent.startsWith("分析：")||textContent.startsWith("正解：")){
-                    if (order==0&&textContent.startsWith("题目：")) {
+                if (textContent.startsWith("题目：") || textContent.startsWith("错解：") || textContent.startsWith("分析：") || textContent.startsWith("正解：")
+                        || textContent.startsWith("题目:") || textContent.startsWith("错解:") || textContent.startsWith("分析:") || textContent.startsWith("正解:")) {
+                    if (order == 0 && (textContent.startsWith("题目：") || textContent.startsWith("题目:"))) {
                         indexs.add(i);
                         ++order;
-                    }
-                    else if (order==1&&textContent.startsWith("错解：")) {
+                    } else if (order == 1 && (textContent.startsWith("错解：") || textContent.startsWith("错解:"))) {
                         indexs.add(i);
                         ++order;
-                    }
-                    else if (order==2&&textContent.startsWith("分析：")) {
+                    } else if (order == 2 && (textContent.startsWith("分析：") || textContent.startsWith("分析:"))) {
                         indexs.add(i);
                         ++order;
-                    }
-                    else if (order==3&&textContent.startsWith("正解：")) {
+                    } else if (order == 3 && (textContent.startsWith("正解：") || textContent.startsWith("正解:"))) {
                         indexs.add(i);
-                        order=0;
-                    }
-                    else{
-                        log.error("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i+"行（不包括空行）内容为：("+textContent+")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)】");
-                        throw new CustomException("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i+"行（不包括空行）内容为：("+textContent+")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)】");
+                        order = 0;
+                    } else {
+                        log.error("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i + "行（不包括空行）内容为：(" + textContent + ")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上冒号)】");
+                        throw new CustomException("导入的word文档格式错误，题目、错解、分析、正解这4个标识符的顺序错误，具体在word文档中的第" + i + "行（不包括空行）内容为：(" + textContent + ")的上一个标识符处出现了错误，【每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上冒号)】");
                     }
                 }
             }
         }
         if (indexs.size() % 4 != 0 || indexs.size() == 0) {
-            log.error("导入的word文档格式错误(题目、错解、分析、正解这4个标识符的数量为" + indexs.size()+")，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)");
-            throw new CustomException("导入的word文档格式错误，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上中文冒号)");
+            log.error("导入的word文档格式错误(题目、错解、分析、正解这4个标识符的数量为" + indexs.size() + ")，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上冒号)");
+            throw new CustomException("导入的word文档格式错误，每一道题都必须包含4个部分：题目、错解、分析、正解(并且各自后面接上冒号)");
         }
         List<Question> questions = text2json(nodeList, categoryIndexs, indexs, subjectService, chapterService, sectionService);
         return questions;
@@ -190,12 +191,12 @@ public class XSLUtils extends DocxToDocument {
         StringBuilder correctAnsBuilder = new StringBuilder();
         
         Long subjectId = null;
-        String subjectName =null;
+        String subjectName = null;
         Long chapterId = null;
-        String chapterName =null;
+        String chapterName = null;
         Long sectionId = null;
-        String sectionName =null;
-    
+        String sectionName = null;
+        
         int j = 0;
         for (int i = 0; i < categoryIndexs.size(); i++) {
             if (i % 3 == 0) {//学科
@@ -203,22 +204,20 @@ public class XSLUtils extends DocxToDocument {
                 Subject subjectServiceOne = subjectService.getOne(new LambdaQueryWrapper<Subject>().eq(Subject::getSubjectName, subjectName));
                 if (subjectServiceOne != null) {
                     subjectId = subjectServiceOne.getId();
-                }
-                else {
-                    throw new CustomException("导入的word中学科: "+subjectName+" 不存在，无法将文本内容转换为对象");
+                } else {
+                    throw new CustomException("导入的word中学科: " + subjectName + " 不存在，无法将文本内容转换为对象");
                 }
             } else if (i % 3 == 1) {//章
                 chapterName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
-                Chapter chapterServiceOne = chapterService.getOne(new LambdaQueryWrapper<Chapter>().eq(Chapter::getSubjectId,subjectId).eq(Chapter::getChapterName, chapterName));
+                Chapter chapterServiceOne = chapterService.getOne(new LambdaQueryWrapper<Chapter>().eq(Chapter::getSubjectId, subjectId).eq(Chapter::getChapterName, chapterName));
                 if (chapterServiceOne != null) {
                     chapterId = chapterServiceOne.getId();
-                }
-                else {
-                    throw new CustomException("导入的word中学科为: "+subjectName+"的章："+chapterName+" 不存在，无法将文本内容转换为对象");
+                } else {
+                    throw new CustomException("导入的word中学科为: " + subjectName + "的章：" + chapterName + " 不存在，无法将文本内容转换为对象");
                 }
             } else {//节
                 sectionName = nodeList.item(categoryIndexs.get(i)).getTextContent().substring(2);
-                Section sectionServiceOne = sectionService.getOne(new LambdaQueryWrapper<Section>().eq(Section::getChapterId,chapterId).eq(Section::getSectionName, sectionName));
+                Section sectionServiceOne = sectionService.getOne(new LambdaQueryWrapper<Section>().eq(Section::getChapterId, chapterId).eq(Section::getSectionName, sectionName));
                 if (sectionServiceOne != null) {
                     sectionId = sectionServiceOne.getId();
                     for (; j < indexs.size(); j++) {
@@ -226,7 +225,7 @@ public class XSLUtils extends DocxToDocument {
                         if (j + 1 < indexs.size()) {
                             endIndex = indexs.get(j + 1);
                         } else endIndex = nodeList.getLength();
-
+                        
                         if (i != categoryIndexs.size() - 1) {//只要这个分类不是最后一个分类，则他后面还有新的分类
                             //如果下一个title的行数比下一个分类的学科的行数还要大，说明碰到了当前分类的最后一题的最后一个正解
                             if (indexs.get(j + 1) > categoryIndexs.get(i + 1)) endIndex = categoryIndexs.get(i + 1);
@@ -263,9 +262,8 @@ public class XSLUtils extends DocxToDocument {
                             
                         }
                     }
-                }
-                else{
-                    throw new CustomException("导入的word中的学科为："+subjectName+" 的章为："+chapterName+" 的节: "+ sectionName+" 不存在，无法将文本内容转换为对象");
+                } else {
+                    throw new CustomException("导入的word中的学科为：" + subjectName + " 的章为：" + chapterName + " 的节: " + sectionName + " 不存在，无法将文本内容转换为对象");
                 }
             }
         }
