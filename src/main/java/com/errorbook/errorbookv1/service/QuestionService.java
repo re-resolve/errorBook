@@ -2,7 +2,7 @@ package com.errorbook.errorbookv1.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.errorbook.errorbookv1.entity.Question;
-import com.errorbook.errorbookv1.service.dto.QuestionCollectionDto;
+import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
 
 public interface QuestionService extends IService<Question> {
     /**

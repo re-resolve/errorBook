@@ -11,7 +11,7 @@ import com.errorbook.errorbookv1.service.ChapterService;
 import com.errorbook.errorbookv1.service.QuestionService;
 import com.errorbook.errorbookv1.service.SectionService;
 import com.errorbook.errorbookv1.service.SubjectService;
-import com.errorbook.errorbookv1.service.dto.QuestionCollectionDto;
+import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

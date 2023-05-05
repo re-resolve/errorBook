@@ -1,4 +1,4 @@
-package com.errorbook.errorbookv1.service.dto;
+package com.errorbook.errorbookv1.common.dto;
 
 
 import com.errorbook.errorbookv1.entity.Question;

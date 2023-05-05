@@ -1,7 +1,7 @@
 package com.errorbook.errorbookv1.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.errorbook.errorbookv1.service.dto.IdListDto;
+import com.errorbook.errorbookv1.common.dto.IdListDto;
 import com.errorbook.errorbookv1.common.lang.Res;
 import com.errorbook.errorbookv1.entity.Collection;
 import com.errorbook.errorbookv1.service.CollectionService;
