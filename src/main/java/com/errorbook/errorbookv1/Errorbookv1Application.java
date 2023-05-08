@@ -5,11 +5,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @MapperScan("com.errorbook.errorbookv1.mapper")
-@SpringBootApplication
+@SpringBootApplication//(exclude = { org.springframework.boot.autoconfigure.aop.AopAutoConfiguration.class })
 public class Errorbookv1Application {
-
+	
 	public static void main(String[] args) {
 		SpringApplication.run(Errorbookv1Application.class, args);
 	}
-
+	
 }
+

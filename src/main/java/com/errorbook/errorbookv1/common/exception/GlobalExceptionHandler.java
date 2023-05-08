@@ -7,6 +7,7 @@ import org.apache.shiro.ShiroException;
 import org.apache.shiro.authz.UnauthenticatedException;
 import org.apache.shiro.authz.UnauthorizedException;
 import org.mybatis.spring.MyBatisSystemException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
@@ -30,7 +31,17 @@ public class GlobalExceptionHandler {
         log.error("数据库发生错误：------{}",e);
         return Res.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(),e.getMessage(),null);
     }
-    
+    /**
+     * 数据库报错（插入或更新数据）
+     * @param e
+     * @return
+     */
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(value = DataIntegrityViolationException.class)
+    public Res hander(DataIntegrityViolationException e){
+        log.error("数据库发生错误：插入或更新数据时，违反了 SQL 数据库表中定义的完整性约束条件。------{}",e);
+        return Res.fail(HttpStatus.INTERNAL_SERVER_ERROR.value(),"数据库发生错误：插入或更新数据时,无法满足约束条件",null);
+    }
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ExceptionHandler(value = ShiroException.class)
     public Res handler(ShiroException e) {

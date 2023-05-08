@@ -1,5 +1,4 @@
-package com.errorbook.errorbookv1.config;/*
-package com.example.errorBook.config;
+package com.errorbook.errorbookv1.config;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -30,10 +29,10 @@ public class RestTemplateConfig {
     @Value("${rest.connectionRequestTimeout}")
     private int connectionRequestTimeout;
     
-    */
+    
 /**
      * 高并发采用HttpClient连接池
-     *//*
+     */
 
     @Bean
     public RestTemplate restTemplate() {
@@ -58,10 +57,10 @@ public class RestTemplateConfig {
         
     }
     
-    */
+    
 /**
      * 使用 HttpComponentsClientHttpRequestFactory创建http请求（推荐）
-     *//*
+     */
 
     
     @Bean
@@ -92,4 +91,4 @@ public class RestTemplateConfig {
     
    
 }
-*/
+

@@ -3,12 +3,12 @@ package com.errorbook.errorbookv1.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.errorbook.errorbookv1.common.dto.IdListDto;
+import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
 import com.errorbook.errorbookv1.common.lang.Res;
 import com.errorbook.errorbookv1.entity.Question;
 import com.errorbook.errorbookv1.entity.User;
 import com.errorbook.errorbookv1.service.*;
-import com.errorbook.errorbookv1.common.dto.IdListDto;
-import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.shiro.authz.annotation.Logical;
@@ -78,7 +78,7 @@ public class QuestionController {
                         , "<picture>", "<picture>"
                         , subjectService, chapterService, sectionService);
         if (results.size() != 0) {
-            for (com.errorbook.errorbookv1.entity.Question result : results) {
+            for (Question result : results) {
                 result.setPublisher(id);
                 log.info(result.toString());
             }
@@ -109,7 +109,7 @@ public class QuestionController {
     */
     
     /**
-     * 根据多个id查对应题目信息
+     * 根据多个id查错题的信息
      * 不传则查询全部
      * 一般用于查某到具体题目的信息。
      *
@@ -117,28 +117,44 @@ public class QuestionController {
      * @return
      */
     @RequiresAuthentication
-    @PostMapping("/listQuestion")
-    public Res listQuestion(@RequestBody IdListDto questionIds) {
+    @PostMapping("/listQuestionInfo")
+    public Res listQuestionInfo(Long[] questionIds) {
+        log.info("根据多个id查错题的信息");
         
-        if (questionIds.getIds().length == 0) {
-            return Res.succ(questionService.list());
-        }
-        Collection<Question> questions = questionService.listByIds(Arrays.asList(questionIds.getIds()));
-    
-        Collection<QuestionCollectionDto> dtoList = new ArrayList<>();
-        
-        for (Question question : questions) {
-            QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
-        
-            BeanUtils.copyProperties(question, questionCollectionDto);
-
-            //设置学科、章、节的名称
-            questionCollectionDto = questionService.setSubChapSecName(questionCollectionDto);
-        
-            dtoList.add(questionCollectionDto);
-        }
-        return Res.succ(dtoList);
+        return questionService.listQuestionInfo(questionIds);
     }
+    
+    /**
+     * 查询错题列表的题目
+     * 传值为0则查询全部
+     * select部分字段
+     *
+     * @param subjectId 学科id
+     * @param chapterId 章id
+     * @param sectionId 节id
+     * @return
+     */
+    @RequiresAuthentication
+    @GetMapping("/searchQuestionTitle")
+    public Res searchQuestionTitle(Long subjectId, Long chapterId, Long sectionId) {
+        log.info("查询错题列表的题目");
+        
+        return questionService.listQuestionTitle(subjectId, chapterId, sectionId);
+    }
+    
+    /**
+     * 查询收藏夹中错题的题目
+     * @param userId
+     * @return
+     */
+    @RequiresAuthentication
+    @GetMapping("/listCollectedQuestion")
+    public Res listCollectedQuestion(Long userId) {
+        log.info("查询收藏夹中错题的题目");
+        return questionService.listCollectedQuestion(userId);
+    }
+    
+    
     
     /**
      * 分页+分类+题目模糊 查询题目的收藏人数
@@ -155,7 +171,7 @@ public class QuestionController {
         Long subjectId = question.getSubjectId();
         Long chapterId = question.getChapterId();
         Long sectionId = question.getSectionId();
-        if(question.getTitle()==null) question.setTitle("");
+        if (question.getTitle() == null) question.setTitle("");
         String title = question.getTitle();
         
         Page<QuestionCollectionDto> questionCollectionDtoPage = new Page<>();
@@ -176,7 +192,7 @@ public class QuestionController {
         
         List<QuestionCollectionDto> dtoList = questionPage.getRecords().stream().map((item) -> {
             QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
-        
+            
             int count = collectionService.count(new LambdaQueryWrapper<com.errorbook.errorbookv1.entity.Collection>()
                     .eq(com.errorbook.errorbookv1.entity.Collection::getQuestionId, item.getId()));
             BeanUtils.copyProperties(item, questionCollectionDto);
@@ -199,7 +215,7 @@ public class QuestionController {
     /**
      * 根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
      * 不传题目id则查询全部
-     * （具体功能：点击题目 和 用户查看自己的收藏夹里面的题目）
+     * （具体功能：点击题目）
      *
      * @param idListDto
      * @return
@@ -243,11 +259,12 @@ public class QuestionController {
     }
     
     /**
-     * 分页+模糊查询题目
+     * 分页+模糊查询题目+查询题目对应是否收藏
      * 传值为0则查询全部
-     * 按更改时间降序
+     * <p>
      * select部分字段
-     * (用户查询题目列表)
+     * (用户查询题目列表)旧
+     *
      * @param page
      * @param pageSize
      * @param question
@@ -255,17 +272,17 @@ public class QuestionController {
      */
     @RequiresAuthentication
     @PostMapping("/pageQuestion")
-    public Res pageQuestion(int page, int pageSize,Long userId, @RequestBody Question question) {
+    public Res pageQuestion(int page, int pageSize, Long userId, @RequestBody Question question) {
         Long subjectId = question.getSubjectId();
         Long chapterId = question.getChapterId();
         Long sectionId = question.getSectionId();
-        if(question.getTitle()==null) question.setTitle("");
+        if (question.getTitle() == null) question.setTitle("");
         String title = question.getTitle();
         Page<Question> questionPage = new Page<>(page, pageSize);
         
         Page<QuestionCollectionDto> questionDtoPage = new Page<>(page, pageSize);
         List<QuestionCollectionDto> dtoList;
-    
+        
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
         
         queryWrapper.eq(subjectId != 0, Question::getSubjectId, subjectId)
@@ -278,9 +295,9 @@ public class QuestionController {
         
         questionService.page(questionPage, queryWrapper);
         
-        BeanUtils.copyProperties(questionPage,questionDtoPage,"records");
-    
-        dtoList = questionPage.getRecords().stream().map((item)->{
+        BeanUtils.copyProperties(questionPage, questionDtoPage, "records");
+        
+        dtoList = questionPage.getRecords().stream().map((item) -> {
             QuestionCollectionDto questionCollectionDto = new QuestionCollectionDto();
             
             BeanUtils.copyProperties(item, questionCollectionDto);
@@ -300,6 +317,8 @@ public class QuestionController {
         
         return Res.succ(questionDtoPage);
     }
+    
+    
     
     /*    *//**
      * 新增一道题目
@@ -328,7 +347,7 @@ public class QuestionController {
         else return Res.fail("删除失败");
     }
     
-    /*    *//**
+    /*
      * 修改一道题目的和名称
      * 需判断学科、章、节是否存在
      * @param question
