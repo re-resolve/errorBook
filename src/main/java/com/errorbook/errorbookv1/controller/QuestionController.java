@@ -1,20 +1,14 @@
 package com.errorbook.errorbookv1.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.errorbook.errorbookv1.common.dto.IdListDto;
-import com.errorbook.errorbookv1.common.dto.QuestionCollectionDto;
 import com.errorbook.errorbookv1.common.lang.Res;
 import com.errorbook.errorbookv1.entity.Question;
-import com.errorbook.errorbookv1.entity.User;
 import com.errorbook.errorbookv1.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresRoles;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,8 +18,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.List;
 
 import static com.errorbook.errorbookv1.utils.XSLUtils.parseEquations;
 
@@ -157,7 +151,7 @@ public class QuestionController {
     
     
     /**
-     * 分页+分类+题目模糊 查询题目的收藏人数
+     * （旧）分页+分类+题目模糊 查询题目的收藏人数
      * 不传则查询全部
      *
      * @param page
@@ -165,7 +159,7 @@ public class QuestionController {
      * @param question
      * @return
      */
-    @RequiresAuthentication
+    /*@RequiresAuthentication
     @PostMapping("/pageQuestionCollection")
     public Res pageQuestionCollection(int page, int pageSize, @RequestBody Question question) {
         Long subjectId = question.getSubjectId();
@@ -210,17 +204,17 @@ public class QuestionController {
         questionCollectionDtoPage.setRecords(dtoList);
         
         return Res.succ(questionCollectionDtoPage);
-    }
+    }*/
     
     /**
-     * 根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
+     * （旧）根据一个用户id和多个题目id，查该用户对应题目信息及是否被收藏
      * 不传题目id则查询全部
      * （具体功能：点击题目）
      *
      * @param idListDto
      * @return
      */
-    @RequiresAuthentication
+/*    @RequiresAuthentication
     @PostMapping("/searchQuestion")
     public Res searchQuestion(@RequestBody IdListDto idListDto) {
         log.info(String.valueOf(idListDto));
@@ -256,10 +250,10 @@ public class QuestionController {
         }
         return Res.succ(dtoList);
         
-    }
+    }*/
     
     /**
-     * 分页+模糊查询题目+查询题目对应是否收藏
+     * （旧）分页+模糊查询题目+查询题目对应是否收藏
      * 传值为0则查询全部
      * <p>
      * select部分字段
@@ -270,7 +264,7 @@ public class QuestionController {
      * @param question
      * @return
      */
-    @RequiresAuthentication
+    /*@RequiresAuthentication
     @PostMapping("/pageQuestion")
     public Res pageQuestion(int page, int pageSize, Long userId, @RequestBody Question question) {
         Long subjectId = question.getSubjectId();
@@ -316,7 +310,7 @@ public class QuestionController {
         questionDtoPage.setRecords(dtoList);
         
         return Res.succ(questionDtoPage);
-    }
+    }*/
     
     
     

@@ -11,7 +11,7 @@ import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 
 /**
- * 题目实体类
+ * 错题实体类
  */
 @Data
 @Accessors(chain = true)
